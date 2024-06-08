@@ -5,14 +5,14 @@ import pandas as pd
 
 
 ##imiona meskie
-dane = pd.read_csv('imiona_meskie.csv')
-imiona_m = dane["IMIĘ PIERWSZE"]
-imiona_m_liczba = dane["LICZBA WYSTĄPIEŃ"]
+dane = pd.read_csv('data/imiona_meskie.csv')
+imiona_m = dane["IMIĘ_PIERWSZE"]
+imiona_m_liczba = dane["LICZBA_WYSTĄPIEŃ"]
 liczba_suma = sum(imiona_m_liczba)
 imiona_m_prawdo = [i/liczba_suma for i in imiona_m_liczba]
 
 ##nazwiska meskie
-dane = pd.read_csv('nazwiska_meskie.csv')
+dane = pd.read_csv('data/nazwiska_meskie.csv')
 nazwiska_m = dane["Nazwisko aktualne"]
 nazwiska_m_liczba = dane["Liczba"]
 liczba_suma = sum(nazwiska_m_liczba)
@@ -20,27 +20,30 @@ nazwiska_m_prawdo = [i/liczba_suma for i in nazwiska_m_liczba]
 
 
 #imiona damksie
-dane = pd.read_csv('imiona_zenskie.csv')
+dane = pd.read_csv('data/imiona_zenskie.csv')
 imiona_z = dane["IMIĘ_PIERWSZE"]
 imiona_z_liczba = dane["LICZBA_WYSTĄPIEŃ"]
 liczba_suma = sum(imiona_z_liczba)
 imiona_z_prawdo = [i/liczba_suma for i in imiona_z_liczba]
 
 #nazwiska damskie
-dane = pd.read_csv('nazwiska_zenskie.csv')
-nazwiska_z = dane["Nawisko aktualne"]
+dane = pd.read_csv('data/nazwiska_zenskie.csv')
+nazwiska_z = dane["Nazwisko aktualne"]
 nazwiska_z_liczba = dane["Liczba"]
 liczba_suma = sum(nazwiska_z_liczba)
 nazwiska_z_prawdo = [i/liczba_suma for i in nazwiska_z_liczba]
 
 
 
-def generate_name(sex, names_m=[], names_f=[], probabilities_m=[], probabilities_f=[]):
-    if sex == "m": #male
-        name = np.random.choice(names_m, p = probabilities_m)
-    elif sex == "f": #female
-        name = np.random.choice(names_f, p = probabilities_f)
-    return name, sex
+def generate_name(names_m=[], lastnames_m = [], names_f=[], lastnames_f=[], prob_l_m=[], prob_l_f=[], prob_m=[], prob_f=[]):
+    i = np.random.choice([0,1])
+    if i == 0: #male
+        name = np.random.choice(names_m, p = prob_m)
+        lastname = np.random.choice(lastnames_m, p = prob_l_m)
+    else: #female
+        name = np.random.choice(names_f, p = prob_f)
+        lastname = np.random.choice(lastnames_f, p = prob_l_f)
+    return name, lastname
 
 
 def generate_nip():
@@ -90,6 +93,69 @@ def generate_email(first_name, last_name):
 
 
 def create_customer():
-    return
 
+    imie, nazwisko = generate_name(names_m=imiona_m, lastnames_m = nazwiska_m, 
+                                    names_f=imiona_z, lastnames_f=nazwiska_z, 
+                                    prob_l_m=nazwiska_m_prawdo, prob_l_f=nazwiska_z_prawdo, 
+                                    prob_m=imiona_m_prawdo, prob_f=imiona_z_prawdo)
+    nip = np.random.choice([0, generate_nip()], p = [0.8, 0.2])
+    nr_telefonu = generate_phone_number()
+    email = generate_email(imie, nazwisko)
+
+    return (str(imie), str(nazwisko), str(nip), str(nr_telefonu), str(email))
+
+############################
+
+klienci = []
+
+
+for i in range(100):
+    klienci.append(create_customer())
+
+
+############################
+
+con = mysql.connector.connect(
+    host = "giniewicz.it",
+    user = "team11",
+    password = "te@m24ii",
+    database = "team11"
+)
+
+if(con):
+    print("Połączenie udane")
+else:
+    print("Połączenie nieudane")
+
+mycursor = con.cursor()
+
+
+mycursor.execute("DROP TABLE IF EXISTS klienci")
+
+sql ='''CREATE TABLE klienci(
+   id_klienta INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+   imie VARCHAR(40) NOT NULL,
+   nazwisko VARCHAR(40) NOT NULL,
+   nip VARCHAR(40) NOT NULL,
+   nr_telefonu VARCHAR(40) NOT NULL,
+   email VARCHAR(40) NOT NULL
+);'''
+mycursor.execute(sql)
+
+for klient in klienci:   
+    insert = (
+        "INSERT INTO klienci(imie, nazwisko, nip, nr_telefonu, email)"
+        "VALUES (%s, %s, %s, %s, %s)"
+    )
+    try:
+        print(klient)
+        mycursor.execute(insert, klient)
+        con.commit()
+    except mysql.connector.Error as err:
+        print(f"Błąd: {err}")
+        con.rollback()
+
+
+mycursor.close()
+con.close()
 

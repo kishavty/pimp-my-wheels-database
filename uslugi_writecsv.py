@@ -61,12 +61,11 @@ prices_moto = {
     "Wymiana akumulatora w motocyklu": 150
 }
 
-with open('uslugi_motocyklowe.csv', mode='w', newline='') as file:
+with open('uslugi_motocyklowe.csv', mode='w', newline='', encoding='utf-8') as file:
     writer = csv.writer(file)
     writer.writerow(['Usluga', 'Cena'])
     for usluga in services_moto:
         writer.writerow([usluga, prices_moto.get(usluga, 'Brak danych')])
-
 
 services_car = [
     "Wymiana oleju i filtra oleju",
@@ -271,7 +270,6 @@ services_car = [
     "Montaż siłowników centralnego zamka",
     "Wymiana nagrzewnicy silnika",
     "Naprawa liczników samochodowych",
-    "Elektronika samochodowa",
     "Naprawa systemu wspomagającego hamowanie - ABS, BAS, EBD",
     "Naprawa systemu zapobiegającego poślizgom - ASR, ESP, DSR, RSC, VSA",
     "Naprawa systemu wspomagającego jazdę - TSR, ACC, BLIS, AFS, LDW, HHC, SBR",
@@ -1066,7 +1064,7 @@ prices_car = {
     "Wymiana przewodów wysokiego napięcia w aucie hybrydowym": 180}
 
 
-with open('uslugi_samochodowe.csv', mode='w', newline='') as file:
+with open('uslugi_samochodowe.csv', mode='w', newline='', encoding='utf-8') as file:
     writer = csv.writer(file)
     writer.writerow(['Usluga', 'Cena'])
     for usluga in services_car:

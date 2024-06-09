@@ -1,8 +1,8 @@
 import mysql.connector
 import pandas as pd
 import numpy as np
+import math
 
-# OGARNIĘCIE DANYCH
 
 ranking = pd.read_excel("ranking_polska.xlsx", sheet_name="Data", skiprows = [0,1,2,3], usecols=[1,2,3,4])
 marki = ranking["marka"]
@@ -28,7 +28,9 @@ def infer_fuel_type(row):
 cars = pd.read_csv("CarsData.csv", delimiter= ",")
 cars = cars[cars["Make"].isin(marki)]
 ile_aut = 40
+ile_motocykli = 10
 auta = []
+motoc = []
 i=0
 while i < ile_aut:
     mar = np.random.choice(marki, size = 1, p = p)[0]
@@ -45,10 +47,33 @@ while i < ile_aut:
         rok = np.random.randint(2000, 2024)
         przebieg = int(sum(np.random.randint(12500, 22500, size = 2025 - rok)))
         paliwo = infer_fuel_type(wiersz)
-        auta.append((str(mar), rok,model, przebieg, paliwo))
+        auta.append((str(mar), rok,model, przebieg, paliwo, "samochód"))
         i+=1
 
 print(auta)
+paliwa = ['Petrol', 'Diesel', 'Electric']
+#motocykle
+motocykle = pd.read_csv("BikeData.csv", delimiter= ",")
+
+
+for i in range(ile_motocykli):
+    ind = np.random.randint(len(motocykle) - 1)
+    wiersz = motocykle.iloc[ind]
+    while type(wiersz["model"]) != str or type(wiersz["company_name"]) != str or type(wiersz["Fuel Type"]) != str or wiersz["Fuel Type"] not in paliwa:
+        ind = np.random.randint(len(motocykle) - 1)
+        wiersz = motocykle.iloc[ind]
+    rok = np.random.randint(2000, 2024)
+    przebieg = int(sum(np.random.randint(12500, 22500, size = 2025 - rok)))
+    paliwo = wiersz["Fuel Type"]
+    if paliwo == 'Petrol':
+        paliwo = 'Benzyna'
+    elif paliwo == 'Electric':
+        paliwo = 'Elektryczne'
+    motoc.append((wiersz["company_name"], rok, wiersz["model"], przebieg, paliwo, "motocykl"))
+
+    print(motoc)
+
+id_motocyki = np.random.randint(ile_motocykli + ile_aut, size = ile_motocykli)
 con = mysql.connector.connect(
     host = "giniewicz.it",
     user = "team11",
@@ -73,19 +98,28 @@ sql ='''CREATE TABLE pojazdy(
    data_produkcji INT UNSIGNED,
    model VARCHAR(40) NOT NULL,
    przebieg INT UNSIGNED,
-   rodzaj_paliwa VARCHAR(40) NOT NULL
+   rodzaj_paliwa VARCHAR(40) NOT NULL,
+   typ_pojazdu ENUM('samochód', 'motocykl') NOT NULL
 );'''
 mycursor.execute(sql)
-
-for auto in auta:   
+a = 0
+m = 0
+for i in range(ile_aut + ile_motocykli):   
     insert = (
-        "INSERT INTO pojazdy(marka, data_produkcji, model, przebieg, rodzaj_paliwa)"
-        "VALUES (%s, %s, %s, %s, %s)"
+        "INSERT INTO pojazdy(marka, data_produkcji, model, przebieg, rodzaj_paliwa, typ_pojazdu)"
+        "VALUES (%s, %s, %s, %s, %s, %s)"
     )
     try:
-        print(auto)
-        mycursor.execute(insert, auto)
-        con.commit()
+        if i in id_motocyki:
+            if m<len(motoc):
+                mycursor.execute(insert, motoc[m])
+                m+=1
+                con.commit()
+        else:
+            if a<len(auta):
+                mycursor.execute(insert, auta[a])
+                a+=1
+                con.commit()
     except mysql.connector.Error as err:
         print(f"Błąd: {err}")
         con.rollback()
@@ -93,6 +127,3 @@ for auto in auta:
 
 mycursor.close()
 con.close()
-
-#for auto in auta:
-    #print([type(item) for item in auto])
